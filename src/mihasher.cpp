@@ -3,6 +3,41 @@
 
 using namespace std;
 
+
+MIHasher::MIHasher(int _B, int _m)
+{
+	B = _B;
+	B_over_8 = B/8;
+	m = _m;
+	b = ceil((double)B/m);
+
+	D = ceil(B/2.0);		// assuming that B/2 is large enough radius to include all of the k nearest neighbors
+	d = ceil((double)D/m);
+
+	mplus = B - m * (b-1);
+	// mplus     is the number of chunks with b bits
+	// (m-mplus) is the number of chunks with (b-1) bits
+
+	xornum = new UINT32 [d+2];
+	xornum[0] = 0;
+	for (int i=0; i<=d; i++)
+		xornum[i+1] = xornum[i] + choose(b, i);
+
+	H = new SparseHashtable[m];
+	// H[i].init might fail
+	for (int i=0; i<mplus; i++)
+		H[i].init(b);
+	for (int i=mplus; i<m; i++)
+		H[i].init(b-1);
+}
+
+MIHasher::~MIHasher()
+{
+	delete[] xornum;
+	delete[] H;
+}
+
+
 /*
  * Inputs: query, numq, dim1queries
  */
@@ -19,7 +54,7 @@ using namespace std;
  *   Hamming distances of the K-nearest neighbors.
  */
 
-void mihasher::batchquery(UINT32 *results, UINT32 *numres, qstat *stats, UINT8 *queries, UINT32 numq, int dim1queries)
+void MIHasher::batchquery(UINT32 *results, UINT32 *numres, qstat *stats, UINT8 *queries, UINT32 numq, int dim1queries)
 {
     counter = new bitarray;
     counter->init(N);
@@ -51,7 +86,7 @@ void mihasher::batchquery(UINT32 *results, UINT32 *numres, qstat *stats, UINT8 *
 // Temp variables: chunks, res -- I did not want to malloc inside
 // query, so these arrays are passed from outside
 
-void mihasher::query(UINT32 *results, UINT32* numres, qstat *stats, UINT8 *query, UINT64 *chunks, UINT32 *res)
+void MIHasher::query(UINT32 *results, UINT32* numres, qstat *stats, UINT8 *query, UINT64 *chunks, UINT32 *res)
 {
     UINT32 maxres = K ? K : N;			// if K == 0 that means we want everything to be processed.
 						// So maxres = N in that case. Otherwise K limits the results processed.
@@ -94,13 +129,18 @@ void mihasher::query(UINT32 *results, UINT32* numres, qstat *stats, UINT8 *query
 	    int bit = s-1;			// bit determines the 1 that should be moving to the left
 	    // we start from the left-most 1, and move it to the left until it touches another one
 
+
+		int numberOfIterations = 0;
+
 	    while (true) {			// the loop for changing bitstr
 	    	if (bit != -1) {
 	    	    bitstr ^= (power[bit] == bit) ? (UINT64)1 << power[bit] : (UINT64)3 << (power[bit]-1);
 	    	    power[bit]++;
 	    	    bit--;
+				numberOfIterations++;
 	    	} else { // bit == -1
 	    	    /* the binary code bitstr is available for processing */
+				printf("%d \n", bitstr);
 	    	    arr = H[k].query(chunksk ^ bitstr, &size); // lookup
 	    	    if (size) {			// the corresponding bucket is not empty
 	    		nd += size;
@@ -127,7 +167,7 @@ void mihasher::query(UINT32 *results, UINT32* numres, qstat *stats, UINT8 *query
 	    		break;
 	    	}
 	    }
-
+		printf("NUmber of itertions. %d\n", numberOfIterations);
 	    n = n + numres[s*m+k]; // This line is very tricky ;)
 	    // The k'th substring (0 based) is the last chance of an
 	    // item at a Hamming distance of s*m+k to be
@@ -165,45 +205,12 @@ void mihasher::query(UINT32 *results, UINT32* numres, qstat *stats, UINT8 *query
     stats->numres = n;
 }
 
-mihasher::mihasher(int _B, int _m)
-{
-    B = _B;
-    B_over_8 = B/8;
-    m = _m;
-    b = ceil((double)B/m);
- 
-    D = ceil(B/2.0);		// assuming that B/2 is large enough radius to include all of the k nearest neighbors
-    d = ceil((double)D/m);
-   
-    mplus = B - m * (b-1);
-    // mplus     is the number of chunks with b bits
-    // (m-mplus) is the number of chunks with (b-1) bits
-
-    xornum = new UINT32 [d+2];
-    xornum[0] = 0;
-    for (int i=0; i<=d; i++)
-	xornum[i+1] = xornum[i] + choose(b, i);
-    
-    H = new SparseHashtable[m];
-    // H[i].init might fail
-    for (int i=0; i<mplus; i++)
-	H[i].init(b);
-    for (int i=mplus; i<m; i++)
-	H[i].init(b-1);
-}
-
-void mihasher::setK(int _K)
+void MIHasher::setK(int _K)
 {
     K = _K;
 }
 
-mihasher::~mihasher()
-{
-    delete[] xornum;
-    delete[] H;
-}
-
-void mihasher::populate(UINT8 *_codes, UINT32 _N, int dim1codes)
+void MIHasher::populate(UINT8 *_codes, UINT32 _N, int dim1codes)
 {
     N = _N;
     codes = _codes;
@@ -217,15 +224,15 @@ void mihasher::populate(UINT8 *_codes, UINT32 _N, int dim1codes)
 	    UINT8 * pcodes = codes;
 
 	    for (UINT64 i=0; i<N; i++) {
-		split(chunks, pcodes, m, mplus, b);
-		
-		H[k].count_insert(chunks[k], i);
+			split(chunks, pcodes, m, mplus, b);
 
-		if (i % (int)ceil((double)N/1000) == 0) {
-		    printf("%.2f%%\r", (double)i/N * 100);
-		    fflush(stdout);
-		}
-		pcodes += dim1codes;
+			H[k].count_insert(chunks[k], i);
+
+			if (i % (int)ceil((double)N/1000) == 0) {
+				printf("%.2f%%\r", (double)i/N * 100);
+				fflush(stdout);
+			}
+			pcodes += dim1codes;
 	    }
 
 	    // for (int k=0; k<m; k++)
@@ -233,15 +240,15 @@ void mihasher::populate(UINT8 *_codes, UINT32 _N, int dim1codes)
 	    
 	    pcodes = codes;
 	    for (UINT64 i=0; i<N; i++) {
-		split(chunks, pcodes, m, mplus, b);
+			split(chunks, pcodes, m, mplus, b);
 
-		H[k].data_insert(chunks[k], i);
+			H[k].data_insert(chunks[k], i);
 
-		if (i % (int)ceil((double)N/1000) == 0) {
-		    printf("%.2f%%\r", (double)i/N * 100);
-		    fflush(stdout);
-		}
-		pcodes += dim1codes;
+			if (i % (int)ceil((double)N/1000) == 0) {
+				printf("%.2f%%\r", (double)i/N * 100);
+				fflush(stdout);
+			}
+			pcodes += dim1codes;
 	    }
 	}
 	 

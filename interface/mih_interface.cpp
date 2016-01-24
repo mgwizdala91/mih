@@ -136,7 +136,7 @@ int main (int argc, char**argv) {
     printf("\n");
 
     /* Run multi-index hashing for K-nearest neighbor search and store the required stats */
-    mihasher *MIH = NULL;
+    MIHasher *MIH = NULL;
     clock_t start0, end0;
     time_t start1, end1;
     qstat *stats = (qstat*) new qstat[NQ];
@@ -172,7 +172,7 @@ int main (int argc, char**argv) {
     for (size_t i=1; i<NQ; i++)
 	result.stats[i] = result.stats[i-1] + STAT_DIM;
     
-    MIH = new mihasher(B, m);
+    MIH = new MIHasher(B, m);
     
     if (R) {
 	printf("Computing greedy reordering using %.0e codes... \n", (double)R); fflush(stdout);

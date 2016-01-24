@@ -25,7 +25,7 @@ struct qstat {
     clock_t ticks;		// Number of clock ticks spent on each query
 };
 
-class mihasher {
+class MIHasher {
  private:
 
     int B;			// Bits per code
@@ -58,12 +58,12 @@ class mihasher {
     int power[100];		// Used within generation of binary codes at a certain Hamming distance
 
  public:
-	
-    mihasher();
 
-    ~mihasher();
+    MIHasher();
 
-    mihasher(int B, int m);
+    ~MIHasher();
+
+    MIHasher(int B, int m);
 
     void setK(int K);
 
