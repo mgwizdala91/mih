@@ -22,8 +22,8 @@ void BucketGroup::count_insert(int subindex, UINT32 data) {
     // printf("(%d, %d)\n", subindex, data);
 
     if (group == NULL) {
-	group = new Array32();
-	group->push(11111);
+        group = new Array32();
+        group->push(11111);
     }
 
     // group->push(subindex);
@@ -34,15 +34,16 @@ void BucketGroup::count_insert(int subindex, UINT32 data) {
     	group->insert(howmany+1, 1);
     	empty |= (UINT32)1 << subindex;
     } else
-    	group->arr[2 + howmany+1]++;
+    {
+        group->arr[2 + howmany+1]++;
+    }
     // printf("howmany: %d, empty: %d\n", howmany, empty);
 }
 
 void BucketGroup::data_insert(int subindex, UINT32 data) {
     // sanity check
     if (group == NULL) {
-	printf("something is prob wrong, group is NULL.\n");
-	exit(1);
+        throw "Group is NULL";
     }
 
     if (group->arr[2] == 11111) {

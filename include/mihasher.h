@@ -1,6 +1,8 @@
 #ifndef __MIHASHER_H
 #define __MIHASHER_H
 
+#include <vector>
+
 #include <stdio.h>
 #include <pthread.h>
 #include <math.h>
@@ -28,25 +30,26 @@ struct qstat {
 class MIHasher {
  private:
 
-    int B;			// Bits per code
+    int m_bitsPerCode;			// Bits per code
 
     int B_over_8;
 
-    int b;			// Bits per chunk (must be less than 64)
+    int m_bitsPerBucket;			// Bits per chunk (must be less than 64)
 
-    int m;			// Number of chunks
+    int m_numberOfBuckets;			// Number of chunks
 
     int mplus;			// Number of chunks with b bits (have 1 bit more than others)
 
-    int D;			// Maximum hamming search radius (we use B/2 by default)
+    int m_maxHammingDistance;			// Maximum hamming search radius (we use B/2 by default)
 
-    int d;			// Maximum hamming search radius per substring
+    int m_maxSubstringHammingDistance;			// Maximum hamming search radius per substring
 
-    int K;			// Maximum results to return
+    int K;			// TODO move this as query function param
 
-    UINT64 N;			// Number of codes
-	
-    UINT8 *codes;		// Table of original full-length codes
+    UINT64 m_numberOfCodes;			// Number of codes
+
+    std::vector<UINT8> m_vcodes;
+    UINT8* m_codes;		// Table of original full-length codes
 
     /* is not thread safe */
     bitarray *counter;		// Counter for eliminating duplicate results
@@ -59,14 +62,17 @@ class MIHasher {
 
  public:
 
-    MIHasher();
-
+    MIHasher(int bitsPerCode, int numberOfBuckets);
     ~MIHasher();
 
-    MIHasher(int B, int m);
+    int getBitsPerCode() const;
+    int getNumberOfBuckets() const;
+    int getNumberOfCodes() const;
+    const std::vector<UINT8>& getCodes() const;
 
     void setK(int K);
 
+    void insert(UINT8 *codes, UINT32 N, int dim1codes);
     void populate(UINT8 *codes, UINT32 N, int dim1codes);
 
     void batchquery (UINT32 *results, UINT32 *numres, qstat *stats, UINT8 * q, UINT32 numq, int dim1queries);

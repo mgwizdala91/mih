@@ -10,9 +10,12 @@
       <sourceFolder url="file://$MODULE_DIR$/src/mihasher.cpp" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/interface/saveRes.cpp" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/interface/linscan_interface.cpp" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/interface/loadVar.cpp" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/interface/mih_interface.cpp" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/interface/loadVar.cpp" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/CMakeLists.txt" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/test/mih_initialize.cpp" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/test/mih_query.cpp" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/test/mih_insert.cpp" isTestSource="false" />
     </content>
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="module-library">

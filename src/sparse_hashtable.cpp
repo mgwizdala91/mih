@@ -1,5 +1,5 @@
 #include "sparse_hashtable.h"
-
+#include <iostream>
 const int SparseHashtable::MAX_B = 37;
 
 SparseHashtable::SparseHashtable() {
@@ -59,5 +59,12 @@ void SparseHashtable::allocate_mem_based_on_counts() {
 
 void SparseHashtable::data_insert(UINT64 index, UINT32 data) {
     /* index & 31 is equivalent to % 32 */
-    table[index >> 5].data_insert((int)(index & 31), data);
+    try
+    {
+        table[index >> 5].data_insert((int)(index & 31), data);
+    }
+    catch(int e)
+    {
+        std::cout << "Accessed index: " << (index >> 5) <<std::endl;
+    }
 }

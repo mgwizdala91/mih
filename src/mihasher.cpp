@@ -4,39 +4,60 @@
 using namespace std;
 
 
-MIHasher::MIHasher(int _B, int _m)
+MIHasher::MIHasher(int bitsPerCode, int numberOfBuckets)
 {
-	B = _B;
-	B_over_8 = B/8;
-	m = _m;
-	b = ceil((double)B/m);
+    m_numberOfCodes = 0;
+    m_bitsPerCode = bitsPerCode;
+    B_over_8 = m_bitsPerCode/8;
 
-	D = ceil(B/2.0);		// assuming that B/2 is large enough radius to include all of the k nearest neighbors
-	d = ceil((double)D/m);
+    m_numberOfBuckets = numberOfBuckets;
+    m_bitsPerBucket = ceil((double)m_bitsPerCode/m_numberOfBuckets);
 
-	mplus = B - m * (b-1);
-	// mplus     is the number of chunks with b bits
-	// (m-mplus) is the number of chunks with (b-1) bits
+    m_maxHammingDistance = ceil(m_bitsPerCode/2.0);		// assuming that B/2 is large enough radius to include all of the k nearest neighbors
+    m_maxSubstringHammingDistance = ceil((double)m_maxHammingDistance/m_numberOfBuckets);
 
-	xornum = new UINT32 [d+2];
-	xornum[0] = 0;
-	for (int i=0; i<=d; i++)
-		xornum[i+1] = xornum[i] + choose(b, i);
+    mplus = m_bitsPerCode - m_numberOfBuckets * (m_bitsPerBucket-1);
+    // mplus     is the number of chunks with b bits
+    // (m-mplus) is the number of chunks with (b-1) bits
 
-	H = new SparseHashtable[m];
-	// H[i].init might fail
-	for (int i=0; i<mplus; i++)
-		H[i].init(b);
-	for (int i=mplus; i<m; i++)
-		H[i].init(b-1);
+    xornum = new UINT32 [m_maxSubstringHammingDistance+2];
+    xornum[0] = 0;
+    for (int i=0; i<=m_maxSubstringHammingDistance; i++)
+        xornum[i+1] = xornum[i] + choose(m_bitsPerBucket, i);
+
+    H = new SparseHashtable[m_numberOfBuckets];
+    // H[i].init might fail
+    for (int i=0; i<mplus; i++)
+        H[i].init(m_bitsPerBucket);
+    for (int i=mplus; i<m_numberOfBuckets; i++)
+        H[i].init(m_bitsPerBucket-1);
 }
 
 MIHasher::~MIHasher()
 {
-	delete[] xornum;
-	delete[] H;
+    delete[] xornum;
+    delete[] H;
 }
 
+
+int MIHasher::getBitsPerCode() const
+{
+    return m_bitsPerCode;
+}
+
+int MIHasher::getNumberOfBuckets() const
+{
+    return m_numberOfBuckets;
+}
+
+int MIHasher::getNumberOfCodes() const {
+    return m_numberOfCodes;
+}
+
+const std::vector<UINT8>& MIHasher::getCodes() const
+{
+    return m_vcodes;
+}
 
 /*
  * Inputs: query, numq, dim1queries
@@ -57,10 +78,10 @@ MIHasher::~MIHasher()
 void MIHasher::batchquery(UINT32 *results, UINT32 *numres, qstat *stats, UINT8 *queries, UINT32 numq, int dim1queries)
 {
     counter = new bitarray;
-    counter->init(N);
+    counter->init(m_numberOfCodes);
 
-    UINT32 *res  = new UINT32[K*(D+1)];
-    UINT64 *chunks = new UINT64[m];
+    UINT32 *res  = new UINT32[K*(m_maxHammingDistance+1)];
+    UINT64 *chunks = new UINT64[m_numberOfBuckets];
 
     UINT32 *presults = results;
     UINT32 *pnumres = numres;
@@ -68,14 +89,14 @@ void MIHasher::batchquery(UINT32 *results, UINT32 *numres, qstat *stats, UINT8 *
     UINT8 *pq = queries;
 
     for (int i=0; i<numq; i++) {
-	query(presults, pnumres, pstats, pq, chunks, res);
+        query(presults, pnumres, pstats, pq, chunks, res);
 
-	presults += K;
-	pnumres += B+1;
-	pstats ++;
-	pq += dim1queries;
+        presults += K;
+        pnumres += m_bitsPerCode+1;
+        pstats ++;
+        pq += dim1queries;
     }
-	
+
     delete [] res;
     delete [] chunks;
 
@@ -88,8 +109,8 @@ void MIHasher::batchquery(UINT32 *results, UINT32 *numres, qstat *stats, UINT8 *
 
 void MIHasher::query(UINT32 *results, UINT32* numres, qstat *stats, UINT8 *query, UINT64 *chunks, UINT32 *res)
 {
-    UINT32 maxres = K ? K : N;			// if K == 0 that means we want everything to be processed.
-						// So maxres = N in that case. Otherwise K limits the results processed.
+    UINT32 maxres = K ? K : m_numberOfCodes;			// if K == 0 that means we want everything to be processed.
+    // So maxres = N in that case. Otherwise K limits the results processed.
 
     UINT32 n = 0; 				// number of results so far obtained (up to a distance of s per chunk)
     UINT32 nc = 0;				// number of candidates tested with full codes (not counting duplicates)
@@ -104,84 +125,84 @@ void MIHasher::query(UINT32 *results, UINT32* numres, qstat *stats, UINT8 *query
     start = clock();
 
     counter->erase();
-    memset(numres, 0, (B+1)*sizeof(*numres));
+    memset(numres, 0, (m_bitsPerCode+1)*sizeof(*numres));
 
-    split(chunks, query, m, mplus, b);
-    
+    split(chunks, query, m_numberOfBuckets, mplus, m_bitsPerBucket);
+
     int s;			// the growing search radius per substring
 
-    int curb = b;		// current b: for the first mplus substrings it is b, for the rest it is (b-1)
+    int curb = m_bitsPerBucket;		// current b: for the first mplus substrings it is b, for the rest it is (b-1)
 
-    for (s = 0; s <= d && n < maxres; s++) {
-	for (int k=0; k<m; k++) {
-	    if (k < mplus)
-		curb = b;
-	    else
-		curb = b-1;
-	    UINT64 chunksk = chunks[k];
-	    nl += xornum[s+1] - xornum[s];	// number of bit-strings with s number of 1s
+    for (s = 0; s <= m_maxSubstringHammingDistance && n < maxres; s++) {
+        for (int k=0; k<m_numberOfBuckets; k++) {
+            if (k < mplus)
+                curb = m_bitsPerBucket;
+            else
+                curb = m_bitsPerBucket-1;
+            UINT64 chunksk = chunks[k];
+            nl += xornum[s+1] - xornum[s];	// number of bit-strings with s number of 1s
 
-	    UINT64 bitstr = 0; 			// the bit-string with s number of 1s
-	    for (int i=0; i<s; i++)
-	    	power[i] = i;			// power[i] stores the location of the i'th 1
-	    power[s] = curb+1;			// used for stopping criterion (location of (s+1)th 1)
+            UINT64 bitstr = 0; 			// the bit-string with s number of 1s
+            for (int i=0; i<s; i++)
+                power[i] = i;			// power[i] stores the location of the i'th 1
+            power[s] = curb+1;			// used for stopping criterion (location of (s+1)th 1)
 
-	    int bit = s-1;			// bit determines the 1 that should be moving to the left
-	    // we start from the left-most 1, and move it to the left until it touches another one
+            int bit = s-1;			// bit determines the 1 that should be moving to the left
+            // we start from the left-most 1, and move it to the left until it touches another one
 
 
-		int numberOfIterations = 0;
+            int numberOfIterations = 0;
 
-	    while (true) {			// the loop for changing bitstr
-	    	if (bit != -1) {
-	    	    bitstr ^= (power[bit] == bit) ? (UINT64)1 << power[bit] : (UINT64)3 << (power[bit]-1);
-	    	    power[bit]++;
-	    	    bit--;
-				numberOfIterations++;
-	    	} else { // bit == -1
-	    	    /* the binary code bitstr is available for processing */
-				printf("%d \n", bitstr);
-	    	    arr = H[k].query(chunksk ^ bitstr, &size); // lookup
-	    	    if (size) {			// the corresponding bucket is not empty
-	    		nd += size;
-	    		for (int c = 0; c < size; c++) {
-	    		    index = arr[c];
-	    		    if (!counter->get(index)) { // if it is not a duplicate
-	    			counter->set(index);
-	    			hammd = match(codes + (UINT64)index*(B_over_8), query, B_over_8);
-	    			nc++;
-	    			if (hammd <= D && numres[hammd] < maxres) {
-	    			    res[hammd * K + numres[hammd]] = index + 1;
-	    			}
-				numres[hammd]++;
-	    		    }
-	    		}
-	    	    }
-	    	    /* end of processing */
+            while (true) {			// the loop for changing bitstr
+                if (bit != -1) {
+                    bitstr ^= (power[bit] == bit) ? (UINT64)1 << power[bit] : (UINT64)3 << (power[bit]-1);
+                    power[bit]++;
+                    bit--;
+                    numberOfIterations++;
+                } else { // bit == -1
+                    /* the binary code bitstr is available for processing */
+//				printf("%d \n", bitstr);
+                    arr = H[k].query(chunksk ^ bitstr, &size); // lookup
+                    if (size) {			// the corresponding bucket is not empty
+                        nd += size;
+                        for (int c = 0; c < size; c++) {
+                            index = arr[c];
+                            if (!counter->get(index)) { // if it is not a duplicate
+                                counter->set(index);
+                                hammd = match(&m_vcodes[index*(B_over_8)], query, B_over_8);
+                                nc++;
+                                if (hammd <= m_maxHammingDistance && numres[hammd] < maxres) {
+                                    res[hammd * K + numres[hammd]] = index + 1;
+                                }
+                                numres[hammd]++;
+                            }
+                        }
+                    }
+                    /* end of processing */
 
-	    	    while (++bit < s && power[bit] == power[bit+1]-1) {
-	    		bitstr ^= (UINT64)1 << (power[bit]-1);
-	    		power[bit] = bit;
-	    	    }
-	    	    if (bit == s)
-	    		break;
-	    	}
-	    }
-		printf("NUmber of itertions. %d\n", numberOfIterations);
-	    n = n + numres[s*m+k]; // This line is very tricky ;)
-	    // The k'th substring (0 based) is the last chance of an
-	    // item at a Hamming distance of s*m+k to be
-	    // found. Because if until the k'th substring, an item
-	    // with distance of s*m+k is not found, then it means that
-	    // all of the substrings so far have a distance of (s+1)
-	    // or more, and the remaining substrings have a distance
-	    // of s or more (total > s*m+k).
-	    
-	    if (n >= maxres)
-		break;
-	}
+                    while (++bit < s && power[bit] == power[bit+1]-1) {
+                        bitstr ^= (UINT64)1 << (power[bit]-1);
+                        power[bit] = bit;
+                    }
+                    if (bit == s)
+                        break;
+                }
+            }
+//            printf("NUmber of itertions. %d\n", numberOfIterations);
+            n = n + numres[s*m_numberOfBuckets+k]; // This line is very tricky ;)
+            // The k'th substring (0 based) is the last chance of an
+            // item at a Hamming distance of s*m+k to be
+            // found. Because if until the k'th substring, an item
+            // with distance of s*m+k is not found, then it means that
+            // all of the substrings so far have a distance of (s+1)
+            // or more, and the remaining substrings have a distance
+            // of s or more (total > s*m+k).
+
+            if (n >= maxres)
+                break;
+        }
     }
-	    
+
     end = clock();
 
     stats->ticks = end-start;
@@ -190,17 +211,17 @@ void MIHasher::query(UINT32 *results, UINT32* numres, qstat *stats, UINT8 *query
     stats->numlookups = nl;
 
     n = 0;
-    for (s = 0; s <= D && n < K; s++ ) {
-	for (int c = 0; c < numres[s] && n < K; c++)
-	    results[n++] = res[s*K + c];
+    for (s = 0; s <= m_maxHammingDistance && n < K; s++ ) {
+        for (int c = 0; c < numres[s] && n < K; c++)
+            results[n++] = res[s*K + c];
     }
 
     UINT32 total = 0;
     stats->maxrho = -1;
-    for (int i=0; i<=B; i++) {
-	total += numres[i];
-	if (total >= K && stats->maxrho == -1)
-	    stats->maxrho = i;
+    for (int i=0; i<=m_bitsPerCode; i++) {
+        total += numres[i];
+        if (total >= K && stats->maxrho == -1)
+            stats->maxrho = i;
     }
     stats->numres = n;
 }
@@ -210,49 +231,95 @@ void MIHasher::setK(int _K)
     K = _K;
 }
 
+void MIHasher::insert(UINT8 *codes, UINT32 N, int dim1codes)
+{
+    m_numberOfCodes += N;
+    m_vcodes.insert(m_vcodes.end(), &codes[0], &codes[N]);
+    int k = 0;
+//#pragma omp parallel shared(k)
+    {
+        UINT64 * chunks = new UINT64[m_numberOfBuckets];
+//#pragma omp for
+        for (k=0; k<m_numberOfBuckets; k++) {
+            UINT8 * pcodes = codes;
+
+            for (UINT64 i=0; i<N; i++) {
+                split(chunks, pcodes, m_numberOfBuckets, mplus, m_bitsPerBucket);
+
+                H[k].count_insert(chunks[k], i);
+
+                if (i % (int)ceil((double)m_numberOfCodes/1000) == 0) {
+                    printf("%.2f%%\r", (double)i/m_numberOfCodes * 100);
+                    fflush(stdout);
+                }
+                pcodes += dim1codes;
+            }
+
+            // for (int k=0; k<m; k++)
+            // 	H[k].allocate_mem_based_on_counts();
+
+            pcodes = codes;
+            for (UINT64 i=0; i<N; i++) {
+                split(chunks, pcodes, m_numberOfBuckets, mplus, m_bitsPerBucket);
+                H[k].data_insert(chunks[k], i);
+
+                if (i % (int)ceil((double)m_numberOfCodes/1000) == 0) {
+                    printf("%.2f%%\r", (double)i/m_numberOfCodes * 100);
+                    fflush(stdout);
+                }
+                pcodes += dim1codes;
+            }
+        }
+
+        delete [] chunks;
+    }
+
+}
+
+
 void MIHasher::populate(UINT8 *_codes, UINT32 _N, int dim1codes)
 {
-    N = _N;
-    codes = _codes;
+    m_numberOfCodes = _N;
+    m_codes = _codes;
 
     int k = 0;
 //#pragma omp parallel shared(k)
     {
-	UINT64 * chunks = new UINT64[m];
+        UINT64 * chunks = new UINT64[m_numberOfBuckets];
 //#pragma omp for
-	for (k=0; k<m; k++) {
-	    UINT8 * pcodes = codes;
+        for (k=0; k<m_numberOfBuckets; k++) {
+            UINT8 * pcodes = m_codes;
 
-	    for (UINT64 i=0; i<N; i++) {
-			split(chunks, pcodes, m, mplus, b);
+            for (UINT64 i=0; i<m_numberOfCodes; i++) {
+                split(chunks, pcodes, m_numberOfBuckets, mplus, m_bitsPerBucket);
 
-			H[k].count_insert(chunks[k], i);
+                H[k].count_insert(chunks[k], i);
 
-			if (i % (int)ceil((double)N/1000) == 0) {
-				printf("%.2f%%\r", (double)i/N * 100);
-				fflush(stdout);
-			}
-			pcodes += dim1codes;
-	    }
+                if (i % (int)ceil((double)m_numberOfCodes/1000) == 0) {
+                    printf("%.2f%%\r", (double)i/m_numberOfCodes * 100);
+                    fflush(stdout);
+                }
+                pcodes += dim1codes;
+            }
 
-	    // for (int k=0; k<m; k++)
-	    // 	H[k].allocate_mem_based_on_counts();
-	    
-	    pcodes = codes;
-	    for (UINT64 i=0; i<N; i++) {
-			split(chunks, pcodes, m, mplus, b);
+            // for (int k=0; k<m; k++)
+            // 	H[k].allocate_mem_based_on_counts();
 
-			H[k].data_insert(chunks[k], i);
+            pcodes = m_codes;
+            for (UINT64 i=0; i<m_numberOfCodes; i++) {
+                split(chunks, pcodes, m_numberOfBuckets, mplus, m_bitsPerBucket);
 
-			if (i % (int)ceil((double)N/1000) == 0) {
-				printf("%.2f%%\r", (double)i/N * 100);
-				fflush(stdout);
-			}
-			pcodes += dim1codes;
-	    }
-	}
-	 
-	delete [] chunks;
+                H[k].data_insert(chunks[k], i);
+
+                if (i % (int)ceil((double)m_numberOfCodes/1000) == 0) {
+                    printf("%.2f%%\r", (double)i/m_numberOfCodes * 100);
+                    fflush(stdout);
+                }
+                pcodes += dim1codes;
+            }
+        }
+
+        delete [] chunks;
     }
 
     // N = _N;
