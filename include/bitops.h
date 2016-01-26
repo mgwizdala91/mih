@@ -90,8 +90,8 @@ inline void print_code(UINT64 tmp, int b) {
 inline UINT64 choose(int n, int r) {
     UINT64 nchooser = 1;
     for (int k=0; k < r; k++) {
-	nchooser *= n-k;
-	nchooser /= k+1;
+		nchooser *= n-k;
+		nchooser /= k+1;
     }
     return nchooser;
 }

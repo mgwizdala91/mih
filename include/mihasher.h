@@ -76,6 +76,7 @@ class MIHasher {
     void populate(UINT8 *codes, UINT32 N, int dim1codes);
 
     void batchquery (UINT32 *results, UINT32 *numres, qstat *stats, UINT8 * q, UINT32 numq, int dim1queries);
+    void search(std::vector<UINT8> query);
    	
  private:
     void query(UINT32 *results, UINT32* numres, qstat *stats, UINT8 *q, UINT64 * chunks, UINT32 * res);

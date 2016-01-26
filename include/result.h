@@ -3,6 +3,10 @@
 
 #include "types.h"
 
+class Result {
+
+};
+
 struct result_t {
     int n;
     int nq;
