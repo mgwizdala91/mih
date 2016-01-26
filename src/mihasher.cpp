@@ -113,7 +113,6 @@ void MIHasher::search(UINT8 *queries, UINT32 numq, int dim1queries, std::vector<
     counter->init(m_numberOfCodes);
 
 
-    UINT32 *res  = new UINT32[K*(m_maxHammingDistance+1)];
     UINT64 *chunks = new UINT64[m_numberOfBuckets];
 
 //    qstat *pstats = stats;
@@ -122,14 +121,13 @@ void MIHasher::search(UINT8 *queries, UINT32 numq, int dim1queries, std::vector<
     for (int i=0; i<numq; i++) {
         std::vector<UINT32> singleQueryResults;
 
-        _search(singleQueryResults, pq, chunks, res);
+        _search(singleQueryResults, pq, chunks);
 
 //        pstats ++;
         pq += dim1queries;
         results.push_back(singleQueryResults);
     }
 
-    delete [] res;
     delete [] chunks;
 
     delete counter;
@@ -138,7 +136,7 @@ void MIHasher::search(UINT8 *queries, UINT32 numq, int dim1queries, std::vector<
 // Temp variables: chunks, res -- I did not want to malloc inside
 // query, so these arrays are passed from outside
 
-void MIHasher::_search(std::vector<UINT32> &resultsVector, UINT8 *query, UINT64 *chunks, UINT32 *res) {
+void MIHasher::_search(std::vector<UINT32> &resultsVector, UINT8 *query, UINT64 *chunks) {
 
     UINT32 maxres = K ? K : m_numberOfCodes;			// if K == 0 that means we want everything to be processed.
     // So maxres = N in that case. Otherwise K limits the results processed.
@@ -156,6 +154,10 @@ void MIHasher::_search(std::vector<UINT32> &resultsVector, UINT8 *query, UINT64 
     start = clock();
 
     counter->erase();
+
+
+    UINT32 res[K*(m_maxHammingDistance+1)];
+
 
     UINT32* results = new UINT32[K];
     UINT32* numres = new UINT32[m_bitsPerCode+1];
