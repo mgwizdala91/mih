@@ -14,9 +14,7 @@
     </ADDITIONAL_GENERATION_ENVIRONMENT>
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="7d0c90fb-189a-4108-a0b4-629603d8ebe0" name="Default" comment="">
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/test/mih_query.cpp" afterPath="$PROJECT_DIR$/test/mih_query.cpp" />
-    </list>
+    <list default="true" id="7d0c90fb-189a-4108-a0b4-629603d8ebe0" name="Default" comment="" />
     <ignored path="mih.iws" />
     <ignored path=".idea/workspace.xml" />
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
