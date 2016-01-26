@@ -158,8 +158,6 @@ void MIHasher::_search(std::vector<UINT32> &resultsVector, UINT8 *query, UINT64 
 
     UINT32 res[K*(m_maxHammingDistance+1)];
 
-
-    UINT32* results = new UINT32[K];
     UINT32* numres = new UINT32[m_bitsPerCode+1];
 
     memset(numres, 0, (m_bitsPerCode+1)*sizeof(*numres));
@@ -253,8 +251,7 @@ void MIHasher::_search(std::vector<UINT32> &resultsVector, UINT8 *query, UINT64 
     for (searchRadius = 0; searchRadius <= m_maxHammingDistance && n < K; searchRadius++ ) {
         for (int c = 0; c < numres[searchRadius] && n < K; c++)
         {
-            results[n++] = res[searchRadius * K + c];
-            resultsVector.push_back(results[n-1]);
+            resultsVector.push_back(res[searchRadius * K + c]);
         }
     }
 
