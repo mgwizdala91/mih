@@ -1,10 +1,9 @@
 cmake_minimum_required(VERSION 2.6)
 
+OPTION(BUILD_TESTS "Turn off if you dont want to build tests" On)
+
 project (mih)
 
-# Locate GTest
-find_package(GTest REQUIRED)
-include_directories(${GTEST_INCLUDE_DIRS})
 
 find_library (HDF5_LIB hdf5)
 set (CMAKE_CXX_FLAGS "-DSINGLE_CORE -fopenmp -DNDEBUG")
@@ -21,7 +20,12 @@ add_executable (linscan interface/linscan_interface.cpp src/linscan.cpp interfac
 target_link_libraries (linscan ${HDF5_LIB})
 
 
-project (tests)
-# Link runTests with what we want to test and the GTest and pthread library
-add_executable(initializeTest test/mih_initialize.cpp src/array32.cpp src/mihasher.cpp src/sparse_hashtable.cpp src/bucket_group.cpp src/reorder.cpp test/mih_insert.cpp test/mih_query.cpp)
-target_link_libraries(initializeTest ${GTEST_LIBRARIES} pthread)
+if(BUILD_TESTS)
+    # Locate GTest
+    find_package(GTest REQUIRED)
+    include_directories(${GTEST_INCLUDE_DIRS})
+
+    project (tests)
+    add_executable(initializeTest test/mih_initialize.cpp src/array32.cpp src/mihasher.cpp src/sparse_hashtable.cpp src/bucket_group.cpp src/reorder.cpp test/mih_insert.cpp test/mih_query.cpp)
+    target_link_libraries(initializeTest ${GTEST_LIBRARIES} pthread)
+endif()
