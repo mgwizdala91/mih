@@ -41,7 +41,7 @@ TEST(QueryTest, Query) {
 
     miHasher.batchquery(result.res[0], result.nres[0], stats, &array[0], NQ, 1);
 
-    ASSERT_EQ(*result.res[0], array[0]);
+    ASSERT_EQ(*result.res[0], 1);
 }
 
 
@@ -83,5 +83,24 @@ TEST(QueryTest, Query2) {
 
     miHasher.batchquery(result.res[0], result.nres[0], stats, &array[3], NQ, 1);
 
-    ASSERT_EQ(*result.res[0], array[0]);
+    ASSERT_EQ(*result.res[0], 4);
+}
+
+
+TEST(QueryTest, Search) {
+    UINT8 array[] = {1, 2, 7, 15, 31};
+
+    MIHasher miHasher(8, 1);
+    miHasher.setK(1);
+    miHasher.insert(array, 5, 1);
+
+    std::vector< std::vector<UINT32> > results;
+
+    miHasher.search(array, 5, 1, results);
+
+    ASSERT_EQ(results.size(), 5);
+    ASSERT_EQ(results[0].size(), 1);
+    ASSERT_EQ(results[0][0], 1);
+    ASSERT_EQ(results[1].size(), 1);
+    ASSERT_EQ(results[1][0], 2);
 }

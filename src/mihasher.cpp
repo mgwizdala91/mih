@@ -107,6 +107,164 @@ void MIHasher::batchquery(UINT32 *results, UINT32 *numres, qstat *stats, UINT8 *
     delete counter;
 }
 
+void MIHasher::search(UINT8 *queries, UINT32 numq, int dim1queries, std::vector<std::vector<UINT32> > &results) {
+
+    counter = new bitarray;
+    counter->init(m_numberOfCodes);
+
+
+    UINT32 *res  = new UINT32[K*(m_maxHammingDistance+1)];
+    UINT64 *chunks = new UINT64[m_numberOfBuckets];
+
+//    qstat *pstats = stats;
+    UINT8 *pq = queries;
+
+    for (int i=0; i<numq; i++) {
+        std::vector<UINT32> singleQueryResults;
+
+        _search(singleQueryResults, pq, chunks, res);
+
+//        pstats ++;
+        pq += dim1queries;
+        results.push_back(singleQueryResults);
+    }
+
+    delete [] res;
+    delete [] chunks;
+
+    delete counter;
+}
+
+// Temp variables: chunks, res -- I did not want to malloc inside
+// query, so these arrays are passed from outside
+
+void MIHasher::_search(std::vector<UINT32> &resultsVector, UINT8 *query, UINT64 *chunks, UINT32 *res) {
+
+    UINT32 maxres = K ? K : m_numberOfCodes;			// if K == 0 that means we want everything to be processed.
+    // So maxres = N in that case. Otherwise K limits the results processed.
+
+    UINT32 n = 0; 				// number of results so far obtained (up to a distance of s per chunk)
+    UINT32 nc = 0;				// number of candidates tested with full codes (not counting duplicates)
+    UINT32 nd = 0;              // counting everything retrieved (duplicates are counted multiple times)
+    UINT32 nl = 0;				// number of lookups (and xors)
+    UINT32 *arr;
+    int size = 0;
+    UINT32 index;
+    int hammd;
+    clock_t start, end;
+
+    start = clock();
+
+    counter->erase();
+
+    UINT32* results = new UINT32[K];
+    UINT32* numres = new UINT32[m_bitsPerCode+1];
+
+    memset(numres, 0, (m_bitsPerCode+1)*sizeof(*numres));
+
+    split(chunks, query, m_numberOfBuckets, mplus, m_bitsPerBucket);
+
+
+    int curb = m_bitsPerBucket;		// current b: for the first mplus substrings it is b, for the rest it is (b-1)
+    int searchRadius;			// the growing search radius per substring
+
+    for (searchRadius = 0; searchRadius <= m_maxSubstringHammingDistance && n < maxres; searchRadius++)
+    {
+        for (int bucketIndex = 0; bucketIndex < m_numberOfBuckets; bucketIndex++)
+        {
+            if (bucketIndex < mplus)
+                curb = m_bitsPerBucket;
+            else
+                curb = m_bitsPerBucket-1;
+            UINT64 chunksk = chunks[bucketIndex];
+            nl += xornum[searchRadius + 1] - xornum[searchRadius];	// number of bit-strings with s number of 1s
+
+            UINT64 bitstr = 0; 			// the bit-string with s number of 1s
+            for (int i=0; i < searchRadius; i++)
+                power[i] = i;			// power[i] stores the location of the i'th 1
+            power[searchRadius] = curb + 1;			// used for stopping criterion (location of (s+1)th 1)
+
+            int bit = searchRadius - 1;			// bit determines the 1 that should be moving to the left
+            // we start from the left-most 1, and move it to the left until it touches another one
+
+
+            int numberOfIterations = 0;
+
+            while (true) {			// the loop for changing bitstr
+                if (bit != -1) {
+                    bitstr ^= (power[bit] == bit) ? (UINT64)1 << power[bit] : (UINT64)3 << (power[bit]-1);
+                    power[bit]++;
+                    bit--;
+                    numberOfIterations++;
+                } else { // bit == -1
+                    /* the binary code bitstr is available for processing */
+//				printf("%d \n", bitstr);
+                    arr = H[bucketIndex].query(chunksk ^ bitstr, &size); // lookup
+                    if (size) {			// the corresponding bucket is not empty
+                        nd += size;
+                        for (int c = 0; c < size; c++) {
+                            index = arr[c];
+                            if (!counter->get(index)) { // if it is not a duplicate
+                                counter->set(index);
+                                hammd = match(&m_vcodes[index*(B_over_8)], query, B_over_8);
+                                nc++;
+                                if (hammd <= m_maxHammingDistance && numres[hammd] < maxres) {
+                                    res[hammd * K + numres[hammd]] = index + 1;
+                                }
+                                numres[hammd]++;
+                            }
+                        }
+                    }
+                    /* end of processing */
+
+                    while (++bit < searchRadius && power[bit] == power[bit + 1] - 1) {
+                        bitstr ^= (UINT64)1 << (power[bit]-1);
+                        power[bit] = bit;
+                    }
+                    if (bit == searchRadius)
+                        break;
+                }
+            }
+//            printf("NUmber of itertions. %d\n", numberOfIterations);
+            n = n + numres[searchRadius * m_numberOfBuckets + bucketIndex]; // This line is very tricky ;)
+            // The k'th substring (0 based) is the last chance of an
+            // item at a Hamming distance of s*m+k to be
+            // found. Because if until the k'th substring, an item
+            // with distance of s*m+k is not found, then it means that
+            // all of the substrings so far have a distance of (s+1)
+            // or more, and the remaining substrings have a distance
+            // of s or more (total > s*m+k).
+
+            if (n >= maxres)
+                break;
+        }
+    }
+
+    end = clock();
+
+//    stats->ticks = end-start;
+//    stats->numcand = nc;
+//    stats->numdups = nd;
+//    stats->numlookups = nl;
+
+    n = 0;
+    for (searchRadius = 0; searchRadius <= m_maxHammingDistance && n < K; searchRadius++ ) {
+        for (int c = 0; c < numres[searchRadius] && n < K; c++)
+        {
+            results[n++] = res[searchRadius * K + c];
+            resultsVector.push_back(results[n-1]);
+        }
+    }
+
+//    UINT32 total = 0;
+//    stats->maxrho = -1;
+//    for (int i=0; i<=m_bitsPerCode; i++) {
+//        total += numres[i];
+//        if (total >= K && stats->maxrho == -1)
+//            stats->maxrho = i;
+//    }
+//    stats->numres = n;
+}
 
 // Temp variables: chunks, res -- I did not want to malloc inside
 // query, so these arrays are passed from outside

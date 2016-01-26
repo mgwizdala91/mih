@@ -163,6 +163,7 @@ int main (int argc, char**argv) {
 	result.res[i] = result.res[i-1] + K;
 
     result.nres = (UINT32 **) malloc(sizeof(UINT32*)*NQ);
+    (UINT32 *) malloc(sizeof(UINT32)*K*NQ);
     result.nres[0] = (UINT32 *) malloc(sizeof(UINT32)*(B+1)*NQ);
     for (size_t i=1; i<NQ; i++)
 	result.nres[i] = result.nres[i-1] + (B+1);
