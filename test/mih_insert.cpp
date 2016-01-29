@@ -61,3 +61,35 @@ TEST(InsertTest, InsertTwice) {
 
     ASSERT_EQ(vec.size(), 10);
 }
+
+
+TEST(InsertTest, Insert_16bit) {
+    UINT16 array[] = {1, 2, 7, 15, 31};
+    UINT8* arrayPointer = (UINT8*)array;
+
+    MIHasher miHasher(16, 1);
+    miHasher.insert(arrayPointer, 5, 2);
+
+    std::vector<UINT8> vec = miHasher.getCodes();
+
+    ASSERT_EQ(miHasher.getBitsPerCode(), 16);
+    ASSERT_EQ(miHasher.getNumberOfBuckets(), 1);
+    ASSERT_EQ(miHasher.getNumberOfCodes(), 5);
+    ASSERT_EQ(vec.size(), 10);
+}
+
+
+TEST(InsertTest, Insert_32bit) {
+    UINT32 array[] = {1, 2, 7, 15, 31};
+    UINT8* arrayPointer = (UINT8*)array;
+
+    MIHasher miHasher(32, 1);
+    miHasher.insert(arrayPointer, 5, 2);
+
+    std::vector<UINT8> vec = miHasher.getCodes();
+
+    ASSERT_EQ(miHasher.getBitsPerCode(), 32);
+    ASSERT_EQ(miHasher.getNumberOfBuckets(), 1);
+    ASSERT_EQ(miHasher.getNumberOfCodes(), 5);
+    ASSERT_EQ(vec.size(), 20);
+}

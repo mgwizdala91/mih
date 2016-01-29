@@ -1,6 +1,9 @@
 #include <algorithm>
 #include "mihasher.h"
 
+#include <iostream>
+#include <bitset>
+
 using namespace std;
 
 
@@ -109,10 +112,12 @@ void MIHasher::batchquery(UINT32 *results, UINT32 *numres, qstat *stats, UINT8 *
 
 void MIHasher::search(UINT8 *queries, UINT32 numq, int dim1queries, std::vector<std::vector<UINT32> > &results) {
 
+    //TODO shared counter is dangerous. Lib cannot be used by multiple threads at once!
     counter = new bitarray;
     counter->init(m_numberOfCodes);
 
 
+    //allocate this region of memory once for all queries. This probably doesent give much performance. Consider moving it to _search function to simplify functions arguments
     UINT64 *chunks = new UINT64[m_numberOfBuckets];
 
 //    qstat *pstats = stats;
@@ -144,14 +149,14 @@ void MIHasher::_search(std::vector<UINT32> &resultsVector, UINT8 *query, UINT64 
     UINT32 n = 0; 				// number of results so far obtained (up to a distance of s per chunk)
     UINT32 nc = 0;				// number of candidates tested with full codes (not counting duplicates)
     UINT32 nd = 0;              // counting everything retrieved (duplicates are counted multiple times)
-    UINT32 nl = 0;				// number of lookups (and xors)
+    UINT32 numberOfPerformedLookups = 0;				// number of lookups (and xors)
     UINT32 *arr;
     int size = 0;
     UINT32 index;
     int hammd;
     clock_t start, end;
 
-    start = clock();
+//    start = clock();
 
     counter->erase();
 
@@ -165,7 +170,7 @@ void MIHasher::_search(std::vector<UINT32> &resultsVector, UINT8 *query, UINT64 
     split(chunks, query, m_numberOfBuckets, mplus, m_bitsPerBucket);
 
 
-    int curb = m_bitsPerBucket;		// current b: for the first mplus substrings it is b, for the rest it is (b-1)
+    int currentBitsCount = m_bitsPerBucket;		// current b: for the first mplus substrings it is b, for the rest it is (b-1)
     int searchRadius;			// the growing search radius per substring
 
     for (searchRadius = 0; searchRadius <= m_maxSubstringHammingDistance && n < maxres; searchRadius++)
@@ -173,16 +178,17 @@ void MIHasher::_search(std::vector<UINT32> &resultsVector, UINT8 *query, UINT64 
         for (int bucketIndex = 0; bucketIndex < m_numberOfBuckets; bucketIndex++)
         {
             if (bucketIndex < mplus)
-                curb = m_bitsPerBucket;
+                currentBitsCount = m_bitsPerBucket;
             else
-                curb = m_bitsPerBucket-1;
+                currentBitsCount = m_bitsPerBucket-1;
+
             UINT64 chunksk = chunks[bucketIndex];
-            nl += xornum[searchRadius + 1] - xornum[searchRadius];	// number of bit-strings with s number of 1s
+            numberOfPerformedLookups += xornum[searchRadius + 1] - xornum[searchRadius];	// number of bit-strings with s number of 1s
 
             UINT64 bitstr = 0; 			// the bit-string with s number of 1s
             for (int i=0; i < searchRadius; i++)
                 power[i] = i;			// power[i] stores the location of the i'th 1
-            power[searchRadius] = curb + 1;			// used for stopping criterion (location of (s+1)th 1)
+            power[searchRadius] = currentBitsCount + 1;			// used for stopping criterion (location of (s+1)th 1)
 
             int bit = searchRadius - 1;			// bit determines the 1 that should be moving to the left
             // we start from the left-most 1, and move it to the left until it touches another one
@@ -198,7 +204,8 @@ void MIHasher::_search(std::vector<UINT32> &resultsVector, UINT8 *query, UINT64 
                     numberOfIterations++;
                 } else { // bit == -1
                     /* the binary code bitstr is available for processing */
-//				printf("%d \n", bitstr);
+
+                    std::cout << "index = " << bucketIndex << " bitstr = " << std::bitset<8>(bitstr)  << std::endl;
                     arr = H[bucketIndex].query(chunksk ^ bitstr, &size); // lookup
                     if (size) {			// the corresponding bucket is not empty
                         nd += size;
@@ -225,7 +232,7 @@ void MIHasher::_search(std::vector<UINT32> &resultsVector, UINT8 *query, UINT64 
                         break;
                 }
             }
-//            printf("NUmber of itertions. %d\n", numberOfIterations);
+
             n = n + numres[searchRadius * m_numberOfBuckets + bucketIndex]; // This line is very tricky ;)
             // The k'th substring (0 based) is the last chance of an
             // item at a Hamming distance of s*m+k to be
@@ -240,7 +247,7 @@ void MIHasher::_search(std::vector<UINT32> &resultsVector, UINT8 *query, UINT64 
         }
     }
 
-    end = clock();
+//    end = clock();
 
 //    stats->ticks = end-start;
 //    stats->numcand = nc;
@@ -397,7 +404,7 @@ void MIHasher::setK(int _K)
 void MIHasher::insert(UINT8 *codes, UINT32 N, int dim1codes)
 {
     m_numberOfCodes += N;
-    m_vcodes.insert(m_vcodes.end(), &codes[0], &codes[N]);
+    m_vcodes.insert(m_vcodes.end(), &codes[0], &codes[N*(m_bitsPerCode/8)]);
     int k = 0;
 //#pragma omp parallel shared(k)
     {

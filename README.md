@@ -1,3 +1,6 @@
+This repository is a fork of Multi Index Hashing library created by M. Norouzi, A. Punjani, D. J. Fleet.
+This README will be rewrited in near future
+
 Multi Index Hashing (MIH)
 =======
 
@@ -124,7 +127,13 @@ please refer to license.txt file.
 
 ### TODO
 
+- More unit tests
+- Delete element (remove from index)
+- doxygen comments
+- refactor rest of lib
+- benchmark app
+- refactor query method
 - Automatic suggestion for the m parameter.
 - Multi-core functionality.
 - Improve SparseHashtable insertion speed. It is currently very slow,
-but can be improved in different ways.
+
