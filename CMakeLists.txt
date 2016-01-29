@@ -2,8 +2,6 @@ cmake_minimum_required(VERSION 2.6)
 
 OPTION(BUILD_TESTS "Turn off if you dont want to build tests" On)
 
-project (mih)
-
 find_library (HDF5_LIB hdf5)
 set (CMAKE_CXX_FLAGS "-DSINGLE_CORE -fopenmp -DNDEBUG")
 #set (CMAKE_CXX_FLAGS "-DSINGLE_CORE -O2 -fopenmp -DNDEBUG")

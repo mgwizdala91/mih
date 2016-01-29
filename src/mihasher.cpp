@@ -262,6 +262,8 @@ void MIHasher::_search(std::vector<UINT32> &resultsVector, UINT8 *query, UINT64 
         }
     }
 
+    delete numres;
+
 //    UINT32 total = 0;
 //    stats->maxrho = -1;
 //    for (int i=0; i<=m_bitsPerCode; i++) {
