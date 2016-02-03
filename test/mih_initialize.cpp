@@ -8,8 +8,8 @@ TEST(InitializeTest, Constructor) {
 
 TEST(InitializeTest, BitCount) {
     MIHasher miHasher8(8, 1);
-    MIHasher miHasher16(16, 1);
-    MIHasher miHasher32(32, 1);
+    MIHasher miHasher16(16, 2);
+    MIHasher miHasher32(32, 4);
 
     ASSERT_EQ(miHasher8.getBitsPerCode(), 8);
     ASSERT_EQ(miHasher16.getBitsPerCode(), 16);

@@ -1,9 +1,11 @@
 #include "sparse_hashtable.h"
+#include "bucket_group_stl.h"
 #include <iostream>
+
 const int SparseHashtable::MAX_B = 37;
 
 SparseHashtable::SparseHashtable() {
-    table = NULL;
+    table = nullptr;
     size = 0;
     b = 0;
 }
@@ -14,13 +16,13 @@ int SparseHashtable::init(int _b) {
 	return 1;
     
     size = UINT64_1 << (b-5);	// size = 2 ^ b
-    table = (BucketGroup*) calloc((size_t)size, sizeof(BucketGroup));
-
+//    table = (BucketGroup*) calloc((size_t)size, sizeof(BucketGroup));
+    table = new BucketGroupSTL[size];
     return 0;
 }
 
 SparseHashtable::~SparseHashtable () {
-    free(table);
+    delete[] table;
 }
 
 void SparseHashtable::insert(UINT64 index, UINT32 data) {
@@ -28,9 +30,9 @@ void SparseHashtable::insert(UINT64 index, UINT32 data) {
     table[index >> 5].insert((int)(index & 31), data);
 }
 
-UINT32* SparseHashtable::query(UINT64 index, int *size) {
+std::vector<UINT32>* SparseHashtable::query(UINT64 index) {
     /* index & 31 is equivalent to % 32 */
-    return table[index >> 5].query((int)(index & 31), size);
+    return table[index >> 5].query((int)(index & 31));
 }
 
 
@@ -40,9 +42,9 @@ void SparseHashtable::lazy_insert(UINT64 index, UINT32 data) {
 }
 
 void SparseHashtable::cleanup_insert(UINT8* dataset, int m, int k, int mplus, int b, int dim1codes) {
-    for (UINT64 i=0; i<size; i++)
-	if (table[i].group != NULL)
-	    table[i].cleanup_insert(dataset, m, k, mplus, b, dim1codes);
+//    for (UINT64 i=0; i<size; i++)
+//	if (table[i].group != NULL)
+//	    table[i].cleanup_insert(dataset, m, k, mplus, b, dim1codes);
 }
 
 
@@ -52,9 +54,9 @@ void SparseHashtable::count_insert(UINT64 index, UINT32 data) {
 }
 
 void SparseHashtable::allocate_mem_based_on_counts() {
-    for (UINT64 i=0; i<size; i++)
-	if (table[i].group != NULL)
-	    table[i].allocate_mem_based_on_counts();
+//    for (UINT64 i=0; i<size; i++)
+//	if (table[i].group != NULL)
+//	    table[i].allocate_mem_based_on_counts();
 }
 
 void SparseHashtable::data_insert(UINT64 index, UINT32 data) {

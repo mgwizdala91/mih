@@ -30,6 +30,23 @@ TEST(InsertTest, Insert10) {
     ASSERT_EQ(vec.size(), 10);
 }
 
+TEST(InsertTest, Insert100k) {
+    UINT8 array[] = {1, 2, 7, 15, 31, 64, 77, 78, 99, 121};
+
+    MIHasher miHasher(8, 1);
+    for(int i = 0; i < 10000; i++)
+    {
+        miHasher.insert(array, 10, 1);
+    }
+
+    std::vector<UINT8> vec = miHasher.getCodes();
+
+    ASSERT_EQ(miHasher.getBitsPerCode(), 8);
+    ASSERT_EQ(miHasher.getNumberOfBuckets(), 1);
+    ASSERT_EQ(miHasher.getNumberOfCodes(), 100000);
+    ASSERT_EQ(vec.size(), 100000);
+}
+
 TEST(InsertTest, InsertTwice) {
     UINT8 array[] = {1, 2, 7, 15, 31};
     UINT8 array2[] = {64, 77, 78, 99, 121};
@@ -83,13 +100,13 @@ TEST(InsertTest, Insert_32bit) {
     UINT32 array[] = {1, 2, 7, 15, 31};
     UINT8* arrayPointer = (UINT8*)array;
 
-    MIHasher miHasher(32, 1);
+    MIHasher miHasher(32, 2);
     miHasher.insert(arrayPointer, 5, 2);
 
     std::vector<UINT8> vec = miHasher.getCodes();
 
     ASSERT_EQ(miHasher.getBitsPerCode(), 32);
-    ASSERT_EQ(miHasher.getNumberOfBuckets(), 1);
+    ASSERT_EQ(miHasher.getNumberOfBuckets(), 2);
     ASSERT_EQ(miHasher.getNumberOfCodes(), 5);
     ASSERT_EQ(vec.size(), 20);
 }

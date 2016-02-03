@@ -3,7 +3,7 @@
 
 #include <gtest/gtest.h>
 
-TEST(QueryTest, Query) {
+TEST(QueryTest, DISABLED_Query) {
     UINT8 array[] = {1, 2, 7, 15, 31};
 
     MIHasher miHasher(8, 1);
@@ -45,7 +45,7 @@ TEST(QueryTest, Query) {
 }
 
 
-TEST(QueryTest, Query2) {
+TEST(QueryTest, DISABLED_Query2) {
     UINT8 array[] = {1, 2, 7, 15, 31};
 
     MIHasher miHasher(8, 1);

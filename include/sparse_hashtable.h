@@ -4,14 +4,14 @@
 #include <stdio.h>
 #include <math.h>
 #include "types.h"
-#include "bucket_group.h"
+#include "bucket_group_stl.h"
 
 class SparseHashtable {
 
  private:
     static const int MAX_B;	// Maximum bits per key before folding the table	
 
-    BucketGroup *table;		// Bins (each bin is an Array object for duplicates of the same key)
+    BucketGroupSTL *table;		// Bins (each bin is an Array object for duplicates of the same key)
 
  public:
 
@@ -29,7 +29,7 @@ class SparseHashtable {
 
     void lazy_insert(UINT64 index, UINT32 data);
 
-    UINT32* query(UINT64 index, int* size);
+    std::vector<UINT32>* query(UINT64 index);
 
     void cleanup_insert(UINT8* dataset, int m, int k, int mplus, int b, int dim1codes);
 

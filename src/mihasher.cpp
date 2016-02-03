@@ -150,7 +150,7 @@ void MIHasher::_search(std::vector<UINT32> &resultsVector, UINT8 *query, UINT64 
     UINT32 nc = 0;				// number of candidates tested with full codes (not counting duplicates)
     UINT32 nd = 0;              // counting everything retrieved (duplicates are counted multiple times)
     UINT32 numberOfPerformedLookups = 0;				// number of lookups (and xors)
-    UINT32 *arr;
+    std::vector<UINT32> *arr;
     int size = 0;
     UINT32 index;
     int hammd;
@@ -205,12 +205,15 @@ void MIHasher::_search(std::vector<UINT32> &resultsVector, UINT8 *query, UINT64 
                 } else { // bit == -1
                     /* the binary code bitstr is available for processing */
 
-                    std::cout << "index = " << bucketIndex << " bitstr = " << std::bitset<8>(bitstr)  << std::endl;
-                    arr = H[bucketIndex].query(chunksk ^ bitstr, &size); // lookup
-                    if (size) {			// the corresponding bucket is not empty
-                        nd += size;
-                        for (int c = 0; c < size; c++) {
-                            index = arr[c];
+//                    std::cout << "index = " << bucketIndex << " bitstr = " << std::bitset<8>(bitstr)  << std::endl;
+                    arr = H[bucketIndex].query(chunksk ^ bitstr); // lookup
+                    if(arr)
+                    {
+//                    if (size) {			// the corresponding bucket is not empty
+//                        nd += size;
+                        for (int c = 0; c < arr->size(); c++) {
+                            index = (*arr)[c];
+
                             if (!counter->get(index)) { // if it is not a duplicate
                                 counter->set(index);
                                 hammd = match(&m_vcodes[index*(B_over_8)], query, B_over_8);
@@ -253,12 +256,12 @@ void MIHasher::_search(std::vector<UINT32> &resultsVector, UINT8 *query, UINT64 
 //    stats->numcand = nc;
 //    stats->numdups = nd;
 //    stats->numlookups = nl;
-
+//
     n = 0;
     for (searchRadius = 0; searchRadius <= m_maxHammingDistance && n < K; searchRadius++ ) {
         for (int c = 0; c < numres[searchRadius] && n < K; c++)
         {
-            resultsVector.push_back(res[searchRadius * K + c]);
+            resultsVector.push_back(res[searchRadius * K + c]); n++;
         }
     }
 
@@ -334,22 +337,22 @@ void MIHasher::query(UINT32 *results, UINT32* numres, qstat *stats, UINT8 *query
                 } else { // bit == -1
                     /* the binary code bitstr is available for processing */
 //				printf("%d \n", bitstr);
-                    arr = H[bucketIndex].query(chunksk ^ bitstr, &size); // lookup
-                    if (size) {			// the corresponding bucket is not empty
-                        nd += size;
-                        for (int c = 0; c < size; c++) {
-                            index = arr[c];
-                            if (!counter->get(index)) { // if it is not a duplicate
-                                counter->set(index);
-                                hammd = match(&m_vcodes[index*(B_over_8)], query, B_over_8);
-                                nc++;
-                                if (hammd <= m_maxHammingDistance && numres[hammd] < maxres) {
-                                    res[hammd * K + numres[hammd]] = index + 1;
-                                }
-                                numres[hammd]++;
-                            }
-                        }
-                    }
+//                    arr = H[bucketIndex].query(chunksk ^ bitstr, &size); // lookup
+//                    if (size) {			// the corresponding bucket is not empty
+//                        nd += size;
+//                        for (int c = 0; c < size; c++) {
+//                            index = arr[c];
+//                            if (!counter->get(index)) { // if it is not a duplicate
+//                                counter->set(index);
+//                                hammd = match(&m_vcodes[index*(B_over_8)], query, B_over_8);
+//                                nc++;
+//                                if (hammd <= m_maxHammingDistance && numres[hammd] < maxres) {
+//                                    res[hammd * K + numres[hammd]] = index + 1;
+//                                }
+//                                numres[hammd]++;
+//                            }
+//                        }
+//                    }
                     /* end of processing */
 
                     while (++bit < searchRadius && power[bit] == power[bit + 1] - 1) {
@@ -408,43 +411,39 @@ void MIHasher::insert(UINT8 *codes, UINT32 N, int dim1codes)
     m_numberOfCodes += N;
     m_vcodes.insert(m_vcodes.end(), &codes[0], &codes[N*(m_bitsPerCode/8)]);
     int k = 0;
-//#pragma omp parallel shared(k)
-    {
-        UINT64 * chunks = new UINT64[m_numberOfBuckets];
-//#pragma omp for
-        for (k=0; k<m_numberOfBuckets; k++) {
-            UINT8 * pcodes = codes;
+    UINT64 * chunks = new UINT64[m_numberOfBuckets];
+    for (k=0; k<m_numberOfBuckets; k++) {
+        UINT8 * pcodes = codes;
 
-            for (UINT64 i=0; i<N; i++) {
-                split(chunks, pcodes, m_numberOfBuckets, mplus, m_bitsPerBucket);
+        for (UINT64 i=m_numberOfCodes-N; i<m_numberOfCodes; i++) {
+            split(chunks, pcodes, m_numberOfBuckets, mplus, m_bitsPerBucket);
 
-                H[k].count_insert(chunks[k], i);
+            H[k].count_insert(chunks[k], i);
 
-                if (i % (int)ceil((double)m_numberOfCodes/1000) == 0) {
-                    printf("%.2f%%\r", (double)i/m_numberOfCodes * 100);
-                    fflush(stdout);
-                }
-                pcodes += dim1codes;
+            pcodes += dim1codes;
+        }
+//
+////        for (int k=0; k<m_numberOfBuckets; k++)
+////            H[k].allocate_mem_based_on_counts();
+//
+        pcodes = codes;
+        for (UINT64 i=m_numberOfCodes-N; i<m_numberOfCodes; i++) {
+            split(chunks, pcodes, m_numberOfBuckets, mplus, m_bitsPerBucket);
+            H[k].data_insert(chunks[k], i);
+//
+//            if(i > 1000000) exit(1);
+//            printf("%ld\n", i);
+//            fflush(stdout);
+            if (i % (int)ceil((double)m_numberOfCodes/1000) == 0) {
+                printf("%.2f%%\r", (double)i/m_numberOfCodes * 100);
+                fflush(stdout);
             }
-
-            // for (int k=0; k<m; k++)
-            // 	H[k].allocate_mem_based_on_counts();
-
-            pcodes = codes;
-            for (UINT64 i=0; i<N; i++) {
-                split(chunks, pcodes, m_numberOfBuckets, mplus, m_bitsPerBucket);
-                H[k].data_insert(chunks[k], i);
-
-                if (i % (int)ceil((double)m_numberOfCodes/1000) == 0) {
-                    printf("%.2f%%\r", (double)i/m_numberOfCodes * 100);
-                    fflush(stdout);
-                }
-                pcodes += dim1codes;
-            }
+            pcodes += dim1codes;
         }
 
-        delete [] chunks;
     }
+
+    delete [] chunks;
 
 }
 
