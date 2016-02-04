@@ -27,10 +27,9 @@ struct qstat {
     clock_t ticks;		// Number of clock ticks spent on each query
 };
 
+template <unsigned int BITS_PER_CODE>
 class MIHasher {
  private:
-
-    int m_bitsPerCode;			// Bits per code
 
     int B_over_8;
 
@@ -62,7 +61,7 @@ class MIHasher {
 
  public:
 
-    MIHasher(int bitsPerCode, int numberOfBuckets);
+    MIHasher(int numberOfBuckets);
     ~MIHasher();
 
     int getBitsPerCode() const;

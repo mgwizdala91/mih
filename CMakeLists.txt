@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 2.6)
 
+OPTION(BUILD_DEBUG "Should compiler build debug version of applications?" On)
+OPTION(USE_SSE "Should compiler use SSE instricts" Off)
 OPTION(BUILD_TESTS "Turn off if you dont want to build tests" On)
 OPTION(BUILD_EXAMPLES "Turn off if you dont want to build examples" On)
 
@@ -8,10 +10,17 @@ project(mih)
 include_directories ("${PROJECT_SOURCE_DIR}/include")
 
 find_library (HDF5_LIB hdf5)
-set (CMAKE_CXX_FLAGS "-DSINGLE_CORE -pg -DNDEBUG -std=c++11" )
-#set (CMAKE_CXX_FLAGS "-DSINGLE_CORE -O2 -fopenmp -DNDEBUG")
+
+if(BUILD_DEBUG)
+    set (CMAKE_CXX_FLAGS "-DSINGLE_CORE -pg -DNDEBUG -std=c++11" )
+else()
+    set (CMAKE_CXX_FLAGS "-DSINGLE_CORE -O2 -march=native -std=c++11")
+endif()
 # -Wall -march=native -mtune=native")
 
+if(USE_SSE)
+    add_definitions(-DUSE_SSE)
+endif()
 
 include_directories(${GTEST_INCLUDE_DIRS})
 add_library(mih src/array32.cpp src/mihasher.cpp src/sparse_hashtable.cpp src/bucket_group_stl.cpp src/reorder.cpp)

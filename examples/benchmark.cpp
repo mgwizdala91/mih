@@ -17,7 +17,7 @@ const int ELEMENTS_COUNT = 1000000;
 
 int main()
 {
-    MIHasher miHasher(BITS_COUNT, BUCKETS_COUNT);
+    MIHasher<BITS_COUNT> miHasher(BUCKETS_COUNT);
     miHasher.setK(10);
     srand(SEED);
 //

@@ -6,19 +6,18 @@
 
 using namespace std;
 
-
-MIHasher::MIHasher(int bitsPerCode, int numberOfBuckets) {
+template <unsigned int BITS_PER_CODE>
+MIHasher<BITS_PER_CODE>::MIHasher(int numberOfBuckets) {
     m_numberOfCodes = 0;
-    m_bitsPerCode = bitsPerCode;
-    B_over_8 = m_bitsPerCode / 8;
+    B_over_8 = BITS_PER_CODE / 8;
 
     m_numberOfBuckets = numberOfBuckets;
-    m_bitsPerBucket = ceil((double) m_bitsPerCode / m_numberOfBuckets);
+    m_bitsPerBucket = ceil((double) BITS_PER_CODE / m_numberOfBuckets);
 
-    m_maxHammingDistance = ceil(m_bitsPerCode / 2.0);        // assuming that B/2 is large enough radius to include all of the k nearest neighbors
+    m_maxHammingDistance = ceil(BITS_PER_CODE / 2.0);        // assuming that B/2 is large enough radius to include all of the k nearest neighbors
     m_maxSubstringHammingDistance = ceil((double) m_maxHammingDistance / m_numberOfBuckets);
 
-    mplus = m_bitsPerCode - m_numberOfBuckets * (m_bitsPerBucket - 1);
+    mplus = BITS_PER_CODE - m_numberOfBuckets * (m_bitsPerBucket - 1);
     // mplus     is the number of chunks with b bits
     // (m-mplus) is the number of chunks with (b-1) bits
 
@@ -40,28 +39,32 @@ MIHasher::MIHasher(int bitsPerCode, int numberOfBuckets) {
     }
 }
 
-MIHasher::~MIHasher()
+template <unsigned int BITS_PER_CODE>
+MIHasher<BITS_PER_CODE>::~MIHasher()
 {
     delete[] xornum;
     delete[] H;
 }
 
-
-int MIHasher::getBitsPerCode() const
+template <unsigned int BITS_PER_CODE>
+int MIHasher<BITS_PER_CODE>::getBitsPerCode() const
 {
-    return m_bitsPerCode;
+    return BITS_PER_CODE;
 }
 
-int MIHasher::getNumberOfBuckets() const
+template <unsigned int BITS_PER_CODE>
+int MIHasher<BITS_PER_CODE>::getNumberOfBuckets() const
 {
     return m_numberOfBuckets;
 }
 
-int MIHasher::getNumberOfCodes() const {
+template <unsigned int BITS_PER_CODE>
+int MIHasher<BITS_PER_CODE>::getNumberOfCodes() const {
     return m_numberOfCodes;
 }
 
-const std::vector<UINT8>& MIHasher::getCodes() const
+template <unsigned int BITS_PER_CODE>
+const std::vector<UINT8>& MIHasher<BITS_PER_CODE>::getCodes() const
 {
     return m_vcodes;
 }
@@ -81,8 +84,8 @@ const std::vector<UINT8>& MIHasher::getCodes() const
  *   neighbors are reached. So from this array you can figure out the
  *   Hamming distances of the K-nearest neighbors.
  */
-
-void MIHasher::batchquery(UINT32 *results, UINT32 *numres, qstat *stats, UINT8 *queries, UINT32 numq, int dim1queries)
+template <unsigned int BITS_PER_CODE>
+void MIHasher<BITS_PER_CODE>::batchquery(UINT32 *results, UINT32 *numres, qstat *stats, UINT8 *queries, UINT32 numq, int dim1queries)
 {
     counter = new bitarray;
     counter->init(m_numberOfCodes);
@@ -99,7 +102,7 @@ void MIHasher::batchquery(UINT32 *results, UINT32 *numres, qstat *stats, UINT8 *
         query(presults, pnumres, pstats, pq, chunks, res);
 
         presults += K;
-        pnumres += m_bitsPerCode+1;
+        pnumres += BITS_PER_CODE+1;
         pstats ++;
         pq += dim1queries;
     }
@@ -110,7 +113,8 @@ void MIHasher::batchquery(UINT32 *results, UINT32 *numres, qstat *stats, UINT8 *
     delete counter;
 }
 
-void MIHasher::search(UINT8 *queries, UINT32 numq, int dim1queries, std::vector<std::vector<UINT32> > &results) {
+template <unsigned int BITS_PER_CODE>
+void MIHasher<BITS_PER_CODE>::search(UINT8 *queries, UINT32 numq, int dim1queries, std::vector<std::vector<UINT32> > &results) {
 
     //TODO shared counter is dangerous. Lib cannot be used by multiple threads at once!
     counter = new bitarray;
@@ -141,7 +145,8 @@ void MIHasher::search(UINT8 *queries, UINT32 numq, int dim1queries, std::vector<
 // Temp variables: chunks, res -- I did not want to malloc inside
 // query, so these arrays are passed from outside
 
-void MIHasher::_search(std::vector<UINT32> &resultsVector, UINT8 *query, UINT64 *chunks) {
+template <unsigned int BITS_PER_CODE>
+void MIHasher<BITS_PER_CODE>::_search(std::vector<UINT32> &resultsVector, UINT8 *query, UINT64 *chunks) {
 
     UINT32 maxres = K ? K : m_numberOfCodes;			// if K == 0 that means we want everything to be processed.
     // So maxres = N in that case. Otherwise K limits the results processed.
@@ -163,9 +168,9 @@ void MIHasher::_search(std::vector<UINT32> &resultsVector, UINT8 *query, UINT64 
 
     UINT32 res[K*(m_maxHammingDistance+1)];
 
-    UINT32* numres = new UINT32[m_bitsPerCode+1];
+    UINT32* numres = new UINT32[BITS_PER_CODE+1];
 
-    memset(numres, 0, (m_bitsPerCode+1)*sizeof(*numres));
+    memset(numres, 0, (BITS_PER_CODE+1)*sizeof(*numres));
 
     split(chunks, query, m_numberOfBuckets, mplus, m_bitsPerBucket);
 
@@ -216,7 +221,7 @@ void MIHasher::_search(std::vector<UINT32> &resultsVector, UINT8 *query, UINT64 
 
                             if (!counter->get(index)) { // if it is not a duplicate
                                 counter->set(index);
-                                hammd = match(&m_vcodes[index*(B_over_8)], query, B_over_8);
+                                hammd = match<BITS_PER_CODE>(&m_vcodes[index*(B_over_8)], query);
                                 nc++;
                                 if (hammd <= m_maxHammingDistance && numres[hammd] < maxres) {
                                     res[hammd * K + numres[hammd]] = index + 1;
@@ -279,8 +284,8 @@ void MIHasher::_search(std::vector<UINT32> &resultsVector, UINT8 *query, UINT64 
 
 // Temp variables: chunks, res -- I did not want to malloc inside
 // query, so these arrays are passed from outside
-
-void MIHasher::query(UINT32 *results, UINT32* numres, qstat *stats, UINT8 *query, UINT64 *chunks, UINT32 *res)
+template <unsigned int BITS_PER_CODE>
+void MIHasher<BITS_PER_CODE>::query(UINT32 *results, UINT32* numres, qstat *stats, UINT8 *query, UINT64 *chunks, UINT32 *res)
 {
     UINT32 maxres = K ? K : m_numberOfCodes;			// if K == 0 that means we want everything to be processed.
     // So maxres = N in that case. Otherwise K limits the results processed.
@@ -298,7 +303,7 @@ void MIHasher::query(UINT32 *results, UINT32* numres, qstat *stats, UINT8 *query
     start = clock();
 
     counter->erase();
-    memset(numres, 0, (m_bitsPerCode+1)*sizeof(*numres));
+    memset(numres, 0, (BITS_PER_CODE+1)*sizeof(*numres));
 
     split(chunks, query, m_numberOfBuckets, mplus, m_bitsPerBucket);
 
@@ -393,7 +398,7 @@ void MIHasher::query(UINT32 *results, UINT32* numres, qstat *stats, UINT8 *query
 
     UINT32 total = 0;
     stats->maxrho = -1;
-    for (int i=0; i<=m_bitsPerCode; i++) {
+    for (int i=0; i<=BITS_PER_CODE; i++) {
         total += numres[i];
         if (total >= K && stats->maxrho == -1)
             stats->maxrho = i;
@@ -401,15 +406,17 @@ void MIHasher::query(UINT32 *results, UINT32* numres, qstat *stats, UINT8 *query
     stats->numres = n;
 }
 
-void MIHasher::setK(int _K)
+template <unsigned int BITS_PER_CODE>
+void MIHasher<BITS_PER_CODE>::setK(int _K)
 {
     K = _K;
 }
 
-void MIHasher::insert(UINT8 *codes, UINT32 N, int dim1codes)
+template <unsigned int BITS_PER_CODE>
+void MIHasher<BITS_PER_CODE>::insert(UINT8 *codes, UINT32 N, int dim1codes)
 {
     m_numberOfCodes += N;
-    m_vcodes.insert(m_vcodes.end(), &codes[0], &codes[N*(m_bitsPerCode/8)]);
+    m_vcodes.insert(m_vcodes.end(), &codes[0], &codes[N*(BITS_PER_CODE/8)]);
     int k = 0;
     UINT64 * chunks = new UINT64[m_numberOfBuckets];
     for (k=0; k<m_numberOfBuckets; k++) {
@@ -447,8 +454,8 @@ void MIHasher::insert(UINT8 *codes, UINT32 N, int dim1codes)
 
 }
 
-
-void MIHasher::populate(UINT8 *_codes, UINT32 _N, int dim1codes)
+template <unsigned int BITS_PER_CODE>
+void MIHasher<BITS_PER_CODE>::populate(UINT8 *_codes, UINT32 _N, int dim1codes)
 {
     m_numberOfCodes = _N;
     m_codes = _codes;
@@ -513,3 +520,8 @@ void MIHasher::populate(UINT8 *_codes, UINT32 _N, int dim1codes)
     // 	H[k].cleanup_insert(codes, m, k, mplus, b, dim1codes);
     // delete [] chunks;
 }
+
+template class MIHasher<128>;
+template class MIHasher<64>;
+template class MIHasher<32>;
+template class MIHasher<16>;
