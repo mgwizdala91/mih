@@ -8,7 +8,7 @@ project(mih)
 include_directories ("${PROJECT_SOURCE_DIR}/include")
 
 find_library (HDF5_LIB hdf5)
-set (CMAKE_CXX_FLAGS "-DSINGLE_CORE -fopenmp -DNDEBUG -std=c++11" )
+set (CMAKE_CXX_FLAGS "-DSINGLE_CORE -pg -DNDEBUG -std=c++11" )
 #set (CMAKE_CXX_FLAGS "-DSINGLE_CORE -O2 -fopenmp -DNDEBUG")
 # -Wall -march=native -mtune=native")
 

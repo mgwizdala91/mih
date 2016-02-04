@@ -11,7 +11,7 @@
 
 const int SEED = 260519991;
 const int BITS_COUNT = 32;
-const int BUCKETS_COUNT = 4;
+const int BUCKETS_COUNT = 3;
 const int QUERIES_COUNT = 400;
 const int ELEMENTS_COUNT = 1000000;
 
