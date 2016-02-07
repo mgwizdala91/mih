@@ -4,7 +4,7 @@
 TEST(InsertTest, Insert) {
     UINT8 array[] = {1, 2, 7, 15, 31};
 
-    MIHasher miHasher(8, 1);
+    MIHasher<8> miHasher(1);
     miHasher.insert(array, 5, 1);
 
     std::vector<UINT8> vec = miHasher.getCodes();
@@ -19,7 +19,7 @@ TEST(InsertTest, Insert) {
 TEST(InsertTest, Insert10) {
     UINT8 array[] = {1, 2, 7, 15, 31, 64, 77, 78, 99, 121};
 
-    MIHasher miHasher(8, 1);
+    MIHasher<8> miHasher(1);
     miHasher.insert(array, 10, 1);
 
     std::vector<UINT8> vec = miHasher.getCodes();
@@ -33,7 +33,7 @@ TEST(InsertTest, Insert10) {
 TEST(InsertTest, Insert100k) {
     UINT8 array[] = {1, 2, 7, 15, 31, 64, 77, 78, 99, 121};
 
-    MIHasher miHasher(8, 1);
+    MIHasher<8> miHasher(1);
     for(int i = 0; i < 10000; i++)
     {
         miHasher.insert(array, 10, 1);
@@ -51,7 +51,7 @@ TEST(InsertTest, InsertTwice) {
     UINT8 array[] = {1, 2, 7, 15, 31};
     UINT8 array2[] = {64, 77, 78, 99, 121};
 
-    MIHasher miHasher(8, 1);
+    MIHasher<8> miHasher(1);
     miHasher.insert(array, 5, 1);
 
     std::vector<UINT8> vec = miHasher.getCodes();
@@ -84,7 +84,7 @@ TEST(InsertTest, Insert_16bit) {
     UINT16 array[] = {1, 2, 7, 15, 31};
     UINT8* arrayPointer = (UINT8*)array;
 
-    MIHasher miHasher(16, 1);
+    MIHasher<16> miHasher(1);
     miHasher.insert(arrayPointer, 5, 2);
 
     std::vector<UINT8> vec = miHasher.getCodes();
@@ -100,7 +100,7 @@ TEST(InsertTest, Insert_32bit) {
     UINT32 array[] = {1, 2, 7, 15, 31};
     UINT8* arrayPointer = (UINT8*)array;
 
-    MIHasher miHasher(32, 2);
+    MIHasher<32> miHasher(2);
     miHasher.insert(arrayPointer, 5, 2);
 
     std::vector<UINT8> vec = miHasher.getCodes();

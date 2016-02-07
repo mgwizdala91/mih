@@ -6,7 +6,7 @@
 TEST(QueryTest, DISABLED_Query) {
     UINT8 array[] = {1, 2, 7, 15, 31};
 
-    MIHasher miHasher(8, 1);
+    MIHasher<8> miHasher(1);
     miHasher.setK(1);
     miHasher.insert(array, 5, 1);
 
@@ -48,7 +48,7 @@ TEST(QueryTest, DISABLED_Query) {
 TEST(QueryTest, DISABLED_Query2) {
     UINT8 array[] = {1, 2, 7, 15, 31};
 
-    MIHasher miHasher(8, 1);
+    MIHasher<8> miHasher(1);
     miHasher.setK(1);
     miHasher.insert(array, 5, 1);
 
@@ -90,7 +90,7 @@ TEST(QueryTest, DISABLED_Query2) {
 TEST(QueryTest, Search) {
     UINT8 array[] = {1, 2, 7, 15, 31};
 
-    MIHasher miHasher(8, 1);
+    MIHasher<8> miHasher(1);
     miHasher.setK(1);
     miHasher.insert(array, 5, 1);
 
@@ -115,7 +115,7 @@ TEST(QueryTest, SearchNoResult) {
     UINT8 array[] = {1, 2, 4, 8};
     UINT8 query[] = {255};
 
-    MIHasher miHasher(8, 1);
+    MIHasher<8> miHasher(1);
     miHasher.setK(1);
     miHasher.insert(array, 4, 1);
 
@@ -130,7 +130,7 @@ TEST(QueryTest, SearchNoResult) {
 TEST(QueryTest, SearchEmpty) {
     UINT8 array[] = {1, 2, 7, 15, 31};
 
-    MIHasher miHasher(8, 1);
+    MIHasher<8> miHasher(1);
     miHasher.setK(1);
 
     std::vector< std::vector<UINT32> > results;

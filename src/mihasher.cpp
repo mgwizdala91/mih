@@ -225,8 +225,9 @@ void MIHasher<BITS_PER_CODE>::_search(std::vector<UINT32> &resultsVector, UINT8 
                                 nc++;
                                 if (hammd <= m_maxHammingDistance && numres[hammd] < maxres) {
                                     res[hammd * K + numres[hammd]] = index + 1;
+                                    numres[hammd]++;
                                 }
-                                numres[hammd]++;
+
                             }
                         }
                     }
@@ -270,7 +271,7 @@ void MIHasher<BITS_PER_CODE>::_search(std::vector<UINT32> &resultsVector, UINT8 
         }
     }
 
-    delete numres;
+    delete[] numres;
 
 //    UINT32 total = 0;
 //    stats->maxrho = -1;
@@ -525,3 +526,4 @@ template class MIHasher<128>;
 template class MIHasher<64>;
 template class MIHasher<32>;
 template class MIHasher<16>;
+template class MIHasher<8>;

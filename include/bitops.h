@@ -96,7 +96,7 @@ template <unsigned int B>
 inline int match(UINT8* P, UINT8* Q)
 {
 	int output = 0;
-	for (int i=0; i<B; i++)
+	for (int i=0; i<B/8; i++)
 		output+= lookup[P[i] ^ Q[i]];
 	return output;
 }

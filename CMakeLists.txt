@@ -45,6 +45,6 @@ if(BUILD_TESTS)
     find_package(GTest REQUIRED)
 
     project (mih_tests)
-    add_executable(unit_tests test/mih_initialize.cpp test/mih_insert.cpp test/mih_query.cpp)
+    add_executable(unit_tests test/mih_initialize.cpp test/mih_insert.cpp test/mih_query.cpp test/match.cpp)
     target_link_libraries(unit_tests ${GTEST_LIBRARIES} pthread mih)
 endif()

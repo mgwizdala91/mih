@@ -2,14 +2,14 @@
 #include <gtest/gtest.h>
 
 TEST(InitializeTest, Constructor) {
-    MIHasher* miHasher = new MIHasher(8, 1);
+    MIHasher<8>* miHasher = new MIHasher<8>(1);
     ASSERT_EQ(miHasher->getNumberOfCodes(), 0);
 }
 
 TEST(InitializeTest, BitCount) {
-    MIHasher miHasher8(8, 1);
-    MIHasher miHasher16(16, 2);
-    MIHasher miHasher32(32, 4);
+    MIHasher<8> miHasher8(1);
+    MIHasher<16> miHasher16(2);
+    MIHasher<32> miHasher32(4);
 
     ASSERT_EQ(miHasher8.getBitsPerCode(), 8);
     ASSERT_EQ(miHasher16.getBitsPerCode(), 16);
@@ -17,9 +17,9 @@ TEST(InitializeTest, BitCount) {
 }
 
 TEST(InitializeTest, BucketCount) {
-    MIHasher miHasher1(8, 1);
-    MIHasher miHasher2(8, 2);
-    MIHasher miHasher4(8, 4);
+    MIHasher<8> miHasher1(1);
+    MIHasher<8> miHasher2(2);
+    MIHasher<8> miHasher4(4);
 
     ASSERT_EQ(miHasher1.getNumberOfBuckets(), 1);
     ASSERT_EQ(miHasher2.getNumberOfBuckets(), 2);
