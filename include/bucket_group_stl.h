@@ -6,7 +6,6 @@
 #include <stdio.h>
 #include <math.h>
 #include "types.h"
-#include "array32.h"
 #include "bitarray.h"
 
 class BucketGroupSTL {

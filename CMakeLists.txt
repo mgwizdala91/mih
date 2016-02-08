@@ -23,7 +23,7 @@ if(USE_SSE)
 endif()
 
 include_directories(${GTEST_INCLUDE_DIRS})
-add_library(mih src/array32.cpp src/mihasher.cpp src/sparse_hashtable.cpp src/bucket_group_stl.cpp src/reorder.cpp)
+add_library(mih src/mihasher.cpp src/sparse_hashtable.cpp src/bucket_group_stl.cpp src/reorder.cpp)
 
 
 if(BUILD_TESTS)

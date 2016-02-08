@@ -7,7 +7,6 @@
 
 #include "types.h"
 #include "linscan.h"
-#include "memusage.h"
 #include "io.h"
 
 int main (int argc, char**argv) {

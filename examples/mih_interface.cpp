@@ -8,7 +8,6 @@
 
 #include "types.h"
 #include "mihasher.h"
-#include "memusage.h"
 #include "io.h"
 
 #include "reorder.h"

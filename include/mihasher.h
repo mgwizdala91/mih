@@ -16,17 +16,6 @@
 #include "sparse_hashtable.h"
 #include "bitarray.h"
 
-#define STAT_DIM 6		/* Dimensionality of stats, it has STAT_DIM many fields */
-
-struct qstat {
-    UINT32 numres;		// Total number of returned results
-    UINT32 numcand;		// Number of hamming distance computations executed
-    UINT32 numdups;		// Number of candidates skipped because they were duplicates
-    UINT32 numlookups;
-    UINT32 maxrho;		// Largest distance that was searched exhaustively
-    clock_t ticks;		// Number of clock ticks spent on each query
-};
-
 template <unsigned int BITS_PER_CODE>
 class MIHasher {
  private:
@@ -72,16 +61,10 @@ class MIHasher {
     void setK(int K);
 
     void insert(UINT8 *codes, UINT32 N, int dim1codes);
-    void populate(UINT8 *codes, UINT32 N, int dim1codes);
 
     void search(UINT8 *queries, UINT32 numq, int dim1queries, std::vector<std::vector<UINT32> >&results);
 
-
-    void batchquery (UINT32 *results, UINT32 *numres, qstat *stats, UINT8 * q, UINT32 numq, int dim1queries);
-   	
  private:
-    void query(UINT32 *results, UINT32* numres, qstat *stats, UINT8 *q, UINT64 * chunks, UINT32 * res);
-
     void _search(std::vector<UINT32> &resultsVector, UINT8 *q, UINT64 * chunks);
 };
 
