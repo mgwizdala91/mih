@@ -101,6 +101,9 @@ inline int match(UINT8* P, UINT8* Q)
 	return output;
 }
 
+
+extern uint8_t POPCOUNT_4bit[16];
+
 template <>
 inline int match<32>(UINT8* P, UINT8* Q)
 {

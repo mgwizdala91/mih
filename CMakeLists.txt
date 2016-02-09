@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.6)
 
-OPTION(BUILD_DEBUG "Should compiler build debug version of applications?" On)
+OPTION(BUILD_DEBUG "Should compiler build debug version of applications?" Off)
 OPTION(USE_SSE "Should compiler use SSE instricts" Off)
 OPTION(BUILD_TESTS "Turn off if you dont want to build tests" On)
 OPTION(BUILD_EXAMPLES "Turn off if you dont want to build examples" On)
@@ -10,12 +10,16 @@ project(mih)
 include_directories ("${PROJECT_SOURCE_DIR}/include")
 
 find_library (HDF5_LIB hdf5)
+set (CMAKE_CXX_FLAGS "-DSINGLE_CORE -O2 -march=native -std=c++11")
 
-if(BUILD_DEBUG)
-    set (CMAKE_CXX_FLAGS "-DSINGLE_CORE -pg -DNDEBUG -std=c++11" )
-else()
-    set (CMAKE_CXX_FLAGS "-DSINGLE_CORE -O2 -march=native -std=c++11")
-endif()
+
+set (CMAKE_CXX_FLAGS "-DSINGLE_CORE -O2 -march=native -std=c++11 -mpopcnt")
+
+#if(BUILD_DEBUG)
+#    set (CMAKE_CXX_FLAGS "-DSINGLE_CORE -pg -DNDEBUG -std=c++11" )
+#else()
+#    set (CMAKE_CXX_FLAGS "-DSINGLE_CORE -O2 -march=native -std=c++11 -mpopcnt")
+#endif()
 # -Wall -march=native -mtune=native")
 
 if(USE_SSE)
@@ -35,6 +39,8 @@ if(BUILD_TESTS)
 
     add_executable (linscan examples/linscan_interface.cpp src/linscan.cpp examples/loadVar.cpp examples/saveRes.cpp)
     target_link_libraries (linscan ${HDF5_LIB})
+
+    add_executable (bitarray_benchmark examples/bitarray_benchmark.cpp)
 
     add_executable (benchmark examples/benchmark.cpp include/bucket_group_stl.h)
     target_link_libraries (benchmark mih)

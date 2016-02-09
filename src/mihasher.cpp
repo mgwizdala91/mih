@@ -6,6 +6,25 @@
 
 using namespace std;
 
+uint8_t POPCOUNT_4bit[16] = {
+        /* 0 */ 0,
+        /* 1 */ 1,
+        /* 2 */ 1,
+        /* 3 */ 2,
+        /* 4 */ 1,
+        /* 5 */ 2,
+        /* 6 */ 2,
+        /* 7 */ 3,
+        /* 8 */ 1,
+        /* 9 */ 2,
+        /* a */ 2,
+        /* b */ 3,
+        /* c */ 2,
+        /* d */ 3,
+        /* e */ 3,
+        /* f */ 4
+};
+
 template <unsigned int BITS_PER_CODE>
 MIHasher<BITS_PER_CODE>::MIHasher(int numberOfBuckets) {
     m_numberOfCodes = 0;
@@ -167,7 +186,8 @@ void MIHasher<BITS_PER_CODE>::_search(std::vector<UINT32> &resultsVector, UINT8 
                     {
 //                    if (size) {			// the corresponding bucket is not empty
 //                        nd += size;
-                        for (int c = 0; c < arr->size(); c++) {
+                        const int vectorSize = arr->size();
+                        for (int c = 0; c < vectorSize; c++) {
                             index = (*arr)[c];
 
                             if (!counter->get(index)) { // if it is not a duplicate
@@ -176,9 +196,8 @@ void MIHasher<BITS_PER_CODE>::_search(std::vector<UINT32> &resultsVector, UINT8 
                                 nc++;
                                 if (hammd <= m_maxHammingDistance && numres[hammd] < maxres) {
                                     res[hammd * K + numres[hammd]] = index + 1;
-                                    numres[hammd]++;
+                                    ++numres[hammd];
                                 }
-
                             }
                         }
                     }
